@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Healthcare AI Monitoring — Probabilistic Analysis</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════ NAVIGATION ═══════════ -->
+<nav>
+  <div class="nav-brand">⚕ <span>HealthAI</span> Monitor</div>
+  <div class="nav-links">
+    <button class="active" onclick="showSection('s1')">① Dataset</button>
+    <button onclick="showSection('s2')">② Marginal P</button>
+    <button onclick="showSection('s3')">③ Joint P</button>
+    <button onclick="showSection('s4')">④ Conditional P</button>
+    <button onclick="showSection('s5')">⑤ MLE</button>
+    <button onclick="showSection('s6')">⑥ KL Divergence</button>
+    <button onclick="showSection('s7')">⑦ Markov Chain</button>
+    <button onclick="showSection('s8')">⑧ HMM</button>
+    <button onclick="showSection('s9')">⑨ Generative AI</button>
+    <button onclick="showSection('s10')">⑩ Deep Learning</button>
+  </div>
+</nav>
+
+<div class="container">
+
+<!-- ════════════════════════════════════════════════════════
+     SECTION 1 — DATASET UPLOAD & EXPLORATION
+     ════════════════════════════════════════════════════════ -->
+<section id="s1" class="section active">
+  <div class="section-header">
+    <div class="section-badge">Part 1</div>
+    <h1 class="section-title">Dataset Upload &amp; <em>Exploration</em></h1>
+    <p class="section-desc">Upload the Heart Failure Clinical Records CSV dataset to begin analysis. All subsequent sections are powered by this data.</p>
+  </div>
+
+  <!-- Upload zone -->
+  <div class="card mb-16">
+    <div id="upload-zone" class="upload-zone" onclick="document.getElementById('file-input').click()"
+         ondragover="event.preventDefault();this.classList.add('drag-over')"
+         ondragleave="this.classList.remove('drag-over')"
+         ondrop="handleDrop(event)">
+      <div class="icon">📂</div>
+      <h3>Drop CSV file here or click to browse</h3>
+      <p>Heart Failure Clinical Records Dataset (CSV format)</p>
+      <br/>
+      <button class="btn btn-primary" onclick="event.stopPropagation();document.getElementById('file-input').click()">Choose File</button>
+    </div>
+    <input type="file" id="file-input" accept=".csv" class="hidden" onchange="uploadFile(this.files[0])" />
+    <div id="upload-status" class="mt-12"></div>
+  </div>
+
+  <!-- Stats -->
+  <div id="explore-results" class="hidden">
+    <div id="stat-pills" class="grid-4 mb-16"></div>
+
+    <div class="grid-2 mt-20">
+      <div class="card">
+        <div class="card-title">Dataset Preview (first 10 rows)</div>
+        <div class="table-wrap">
+          <table id="preview-table"><thead></thead><tbody></tbody></table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Summary Statistics</div>
+        <div class="table-wrap">
+          <table id="stats-table"><thead><tr><th>Feature</th><th>Mean</th><th>Std</th><th>Min</th><th>Max</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2 mt-20">
+      <div class="card">
+        <div class="card-title">Age vs Death Event</div>
+        <div class="chart-wrap"><canvas id="chart-age"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Ejection Fraction vs Death Event</div>
+        <div class="chart-wrap"><canvas id="chart-ef"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid-2 mt-20">
+      <div class="card">
+        <div class="card-title">Serum Creatinine vs Death Event</div>
+        <div class="chart-wrap"><canvas id="chart-sc"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Feature Correlation Heatmap</div>
+        <div id="corr-heatmap" style="overflow-x:auto;"></div>
+      </div>
+    </div>
+
+    <div class="card mt-20">
+      <div class="explain-box">
+        <strong>Why explore the dataset first?</strong> Exploratory data analysis (EDA) reveals distributions, correlations, and class imbalances before any modelling. Features like <em>ejection fraction</em> (a measure of heart pumping efficiency) and <em>serum creatinine</em> (kidney function indicator) are known clinical predictors of heart failure outcomes. The correlation heatmap highlights multicollinearity and potential confounders.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     SECTION 2 — MARGINAL PROBABILITY
+     ════════════════════════════════════════════════════════ -->
+<section id="s2" class="section">
+  <div class="section-header">
+    <div class="section-badge">Part 2</div>
+    <h1 class="section-title"><em>Marginal</em> Probability</h1>
+    <p class="section-desc">The unconditional probability of the death event in the dataset — P(Death = 1).</p>
+  </div>
+  <div id="marginal-content">
+    <div class="loader"><div class="spinner"></div> Loading…</div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     SECTION 3 — JOINT PROBABILITY
+     ════════════════════════════════════════════════════════ -->
+<section id="s3" class="section">
+  <div class="section-header">
+    <div class="section-badge">Part 3</div>
+    <h1 class="section-title"><em>Joint</em> Probability</h1>
+    <p class="section-desc">P(Age &gt; threshold AND Death = 1) — identifying co-occurring risk factors.</p>
+  </div>
+
+  <div class="card mb-16" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <label style="color:var(--text-muted);font-size:0.88rem;">Age Threshold:</label>
+    <input type="number" id="joint-age" value="60" min="30" max="90" style="width:90px;" />
+    <button class="btn btn-primary" onclick="loadJoint()">Compute</button>
+  </div>
+
+  <div id="joint-content">
+    <div class="loader"><div class="spinner"></div> Loading…</div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     SECTION 4 — CONDITIONAL PROBABILITY
+     ════════════════════════════════════════════════════════ -->
+<section id="s4" class="section">
+  <div class="section-header">
+    <div class="section-badge">Part 4</div>
+    <h1 class="section-title"><em>Conditional</em> Probability</h1>
+    <p class="section-desc">P(Death = 1 | Condition) — the probability of death given a specific clinical condition.</p>
+  </div>
+
+  <div class="card mb-16" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <label style="color:var(--text-muted);font-size:0.88rem;">Condition:</label>
+    <select id="cond-select">
+      <option value="age_gt_60">Age &gt; 60</option>
+      <option value="diabetes">Diabetes = 1</option>
+      <option value="high_blood_pressure">High Blood Pressure = 1</option>
+      <option value="anaemia">Anaemia = 1</option>
+      <option value="smoking">Smoking = 1</option>
+    </select>
+    <button class="btn btn-primary" onclick="loadConditional()">Compute</button>
+  </div>
+
+  <div id="cond-content">
+    <div class="loader"><div class="spinner"></div> Loading…</div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     SECTION 5 — MLE
+     ════════════════════════════════════════════════════════ -->
+<section id="s5" class="section">
+  <div class="section-header">
+    <div class="section-badge">Part 5</div>
+    <h1 class="section-title">Maximum Likelihood <em>Estimation</em></h1>
+    <p class="section-desc">Estimating the Bernoulli parameter p̂ that maximises the likelihood of the observed death event data.</p>
+  </div>
+  <div id="mle-content">
+    <div class="loader"><div class="spinner"></div> Loading…</div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     SECTION 6 — KL DIVERGENCE
+     ════════════════════════════════════════════════════════ -->
+<section id="s6" class="section">
+  <div class="section-header">
+    <div class="section-badge">Part 6</div>
+    <h1 class="section-title">KL <em>Divergence</em></h1>
+    <p class="section-desc">Measuring the information gap between the hospital's assumed death probability and the observed dataset probability.</p>
+  </div>
+
+  <div class="card mb-16" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <label style="color:var(--text-muted);font-size:0.88rem;">Hospital Assumed P(Death):</label>
+    <input type="number" id="kl-assumed" value="0.30" min="0.01" max="0.99" step="0.01" style="width:100px;" />
+    <button class="btn btn-primary" onclick="loadKL()">Compute</button>
+  </div>
+
+  <div id="kl-content">
+    <div class="loader"><div class="spinner"></div> Loading…</div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     SECTION 7 — MARKOV CHAIN
+     ════════════════════════════════════════════════════════ -->
+<section id="s7" class="section">
+  <div class="section-header">
+    <div class="section-badge">Part 7</div>
+    <h1 class="section-title">Markov Chain <em>Model</em></h1>
+    <p class="section-desc">Modelling patient health-state transitions as a discrete-time Markov chain with states: Healthy → At Risk → Critical.</p>
+  </div>
+  <div id="markov-content">
+    <div class="loader"><div class="spinner"></div> Loading…</div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     SECTION 8 — HMM
+     ════════════════════════════════════════════════════════ -->
+<section id="s8" class="section">
+  <div class="section-header">
+    <div class="section-badge">Part 8</div>
+    <h1 class="section-title">Hidden Markov <em>Model</em></h1>
+    <p class="section-desc">Inferring unobservable health states (Healthy / At Risk / Critical) from observable clinical symptoms using emission probabilities.</p>
+  </div>
+  <div id="hmm-content">
+    <div class="loader"><div class="spinner"></div> Loading…</div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     SECTION 9 — GENERATIVE AI
+     ════════════════════════════════════════════════════════ -->
+<section id="s9" class="section">
+  <div class="section-header">
+    <div class="section-badge">Part 9</div>
+    <h1 class="section-title">Generative AI in <em>Healthcare</em></h1>
+    <p class="section-desc">Applications of generative models — from synthetic data augmentation to drug discovery and clinical report generation.</p>
+  </div>
+  <div id="genai-content">
+    <div class="loader"><div class="spinner"></div> Loading…</div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     SECTION 10 — DEEP LEARNING
+     ════════════════════════════════════════════════════════ -->
+<section id="s10" class="section">
+  <div class="section-header">
+    <div class="section-badge">Part 10</div>
+    <h1 class="section-title">Deep Learning for <em>Healthcare Data</em></h1>
+    <p class="section-desc">LSTM, GRU, and Transformer architectures applied to sequential health monitoring — ECG signals, heart rate trends, and clinical time-series.</p>
+  </div>
+  <div id="dl-content"></div>
+</section>
+
+</div><!-- /container -->
+
+<script src="app.js"></script>
+</body>
+</html>
