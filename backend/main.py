@@ -10,6 +10,8 @@ Server starts on http://localhost:8000
 
 import io
 import json
+import os
+
 
 import numpy as np
 import pandas as pd
@@ -220,4 +222,5 @@ def synthetic():
 if __name__ == "__main__":
     print("\n🏥  Healthcare AI Monitoring API")
     print("   http://localhost:8000\n")
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host="0.0.0.0", port=port, debug=False)
