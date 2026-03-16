@@ -3,13 +3,16 @@
    All API calls point to the Flask routes defined in main.py
    ═══════════════════════════════════════════════════════════════ */
 
-const API = "http://localhost:8000";
+// const API = "http://localhost:8000";
+const API = "https://healthcare-ai-monitoring-backend.onrender.com";
 
 // Registry of Chart.js instances so we can destroy before redraw
 const _charts = {};
 
 // ── Tiny helpers ─────────────────────────────────────────────────
-function $(id) { return document.getElementById(id); }
+function $(id) {
+  return document.getElementById(id);
+}
 
 function showToast(msg, type = "success") {
   const t = document.createElement("div");
@@ -20,7 +23,10 @@ function showToast(msg, type = "success") {
 }
 
 function destroyChart(id) {
-  if (_charts[id]) { _charts[id].destroy(); delete _charts[id]; }
+  if (_charts[id]) {
+    _charts[id].destroy();
+    delete _charts[id];
+  }
 }
 
 function mkChart(id, config) {
@@ -32,28 +38,48 @@ function mkChart(id, config) {
 
 // Shared chart palette
 const C = {
-  green:  "rgba(0,212,170,0.85)",
-  blue:   "rgba(14,165,233,0.85)",
-  amber:  "rgba(245,158,11,0.85)",
-  red:    "rgba(239,68,68,0.85)",
-  dim:    "rgba(100,116,139,0.5)",
+  green: "rgba(0,212,170,0.85)",
+  blue: "rgba(14,165,233,0.85)",
+  amber: "rgba(245,158,11,0.85)",
+  red: "rgba(239,68,68,0.85)",
+  dim: "rgba(100,116,139,0.5)",
 };
 
 // Inject common defaults into every Chart config
 function mkCfg(cfg) {
   cfg.options = cfg.options || {};
-  cfg.options.responsive          = true;
+  cfg.options.responsive = true;
   cfg.options.maintainAspectRatio = false;
-  cfg.options.plugins = Object.assign({
-    legend: { labels: { color: "#94a3b8", font: { family: "IBM Plex Sans", size: 12 } } },
-    tooltip: { titleFont: { family: "IBM Plex Mono" }, bodyFont: { family: "IBM Plex Sans" } },
-  }, cfg.options.plugins || {});
+  cfg.options.plugins = Object.assign(
+    {
+      legend: {
+        labels: {
+          color: "#94a3b8",
+          font: { family: "IBM Plex Sans", size: 12 },
+        },
+      },
+      tooltip: {
+        titleFont: { family: "IBM Plex Mono" },
+        bodyFont: { family: "IBM Plex Sans" },
+      },
+    },
+    cfg.options.plugins || {},
+  );
 
   if (cfg.type !== "pie" && cfg.type !== "doughnut") {
-    cfg.options.scales = Object.assign({
-      x: { ticks: { color: "#64748b" }, grid: { color: "rgba(30,45,69,0.6)" } },
-      y: { ticks: { color: "#64748b" }, grid: { color: "rgba(30,45,69,0.6)" } },
-    }, cfg.options.scales || {});
+    cfg.options.scales = Object.assign(
+      {
+        x: {
+          ticks: { color: "#64748b" },
+          grid: { color: "rgba(30,45,69,0.6)" },
+        },
+        y: {
+          ticks: { color: "#64748b" },
+          grid: { color: "rgba(30,45,69,0.6)" },
+        },
+      },
+      cfg.options.scales || {},
+    );
   }
   return cfg;
 }
@@ -67,8 +93,12 @@ function errHtml(msg) {
 
 // ── Navigation ────────────────────────────────────────────────────
 function showSection(id) {
-  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-  document.querySelectorAll(".nav-links button").forEach(b => b.classList.remove("active"));
+  document
+    .querySelectorAll(".section")
+    .forEach((s) => s.classList.remove("active"));
+  document
+    .querySelectorAll(".nav-links button")
+    .forEach((b) => b.classList.remove("active"));
   $(id).classList.add("active");
   const idx = parseInt(id.replace("s", "")) - 1;
   document.querySelectorAll(".nav-links button")[idx].classList.add("active");
@@ -107,7 +137,7 @@ async function uploadFile(file) {
   form.append("file", file);
 
   try {
-    const res  = await fetch(`${API}/upload`, { method: "POST", body: form });
+    const res = await fetch(`${API}/upload`, { method: "POST", body: form });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Upload failed");
 
@@ -128,45 +158,64 @@ function renderExploration(data) {
 
   // Stat pills
   $("stat-pills").innerHTML = [
-    { value: s.num_records,    label: "Total Records" },
-    { value: s.death_count,    label: "Death Events"  },
-    { value: s.survival_count, label: "Survivors"     },
-    { value: s.num_features,   label: "Features"      },
-  ].map(p => `
+    { value: s.num_records, label: "Total Records" },
+    { value: s.death_count, label: "Death Events" },
+    { value: s.survival_count, label: "Survivors" },
+    { value: s.num_features, label: "Features" },
+  ]
+    .map(
+      (p) => `
     <div class="stat-pill">
       <div class="value">${p.value}</div>
       <div class="label">${p.label}</div>
-    </div>`).join("");
+    </div>`,
+    )
+    .join("");
 
   // Preview table
   if (data.preview && data.preview.length) {
     const cols = Object.keys(data.preview[0]);
     $("preview-table").querySelector("thead").innerHTML =
-      `<tr>${cols.map(c => `<th>${c}</th>`).join("")}</tr>`;
-    $("preview-table").querySelector("tbody").innerHTML =
-      data.preview.map(row =>
-        `<tr>${cols.map(c => {
-          let v = row[c];
-          if (c === "DEATH_EVENT") {
-            v = v == 1
-              ? `<span class="badge badge-red">Death</span>`
-              : `<span class="badge badge-green">Alive</span>`;
-          }
-          return `<td>${v !== null && v !== undefined ? v : "—"}</td>`;
-        }).join("")}</tr>`
-      ).join("");
+      `<tr>${cols.map((c) => `<th>${c}</th>`).join("")}</tr>`;
+    $("preview-table").querySelector("tbody").innerHTML = data.preview
+      .map(
+        (row) =>
+          `<tr>${cols
+            .map((c) => {
+              let v = row[c];
+              if (c === "DEATH_EVENT") {
+                v =
+                  v == 1
+                    ? `<span class="badge badge-red">Death</span>`
+                    : `<span class="badge badge-green">Alive</span>`;
+              }
+              return `<td>${v !== null && v !== undefined ? v : "—"}</td>`;
+            })
+            .join("")}</tr>`,
+      )
+      .join("");
   }
 
   // Stats table
-  $("stats-table").querySelector("tbody").innerHTML =
-    Object.entries(s.stats).map(([col, st]) =>
-      `<tr><td>${col}</td><td>${st.mean}</td><td>${st.std}</td><td>${st.min}</td><td>${st.max}</td></tr>`
-    ).join("");
+  $("stats-table").querySelector("tbody").innerHTML = Object.entries(s.stats)
+    .map(
+      ([col, st]) =>
+        `<tr><td>${col}</td><td>${st.mean}</td><td>${st.std}</td><td>${st.min}</td><td>${st.max}</td></tr>`,
+    )
+    .join("");
 
   // Scatter charts
-  renderScatter("chart-age", data.scatter.age,                "Age (years)");
-  renderScatter("chart-ef",  data.scatter.ejection_fraction,  "Ejection Fraction (%)");
-  renderScatter("chart-sc",  data.scatter.serum_creatinine,   "Serum Creatinine (mg/dL)");
+  renderScatter("chart-age", data.scatter.age, "Age (years)");
+  renderScatter(
+    "chart-ef",
+    data.scatter.ejection_fraction,
+    "Ejection Fraction (%)",
+  );
+  renderScatter(
+    "chart-sc",
+    data.scatter.serum_creatinine,
+    "Serum Creatinine (mg/dL)",
+  );
 
   // Correlation heatmap
   renderHeatmap(data.correlation);
@@ -174,29 +223,50 @@ function renderExploration(data) {
 
 function renderScatter(id, scatterData, xLabel) {
   if (!scatterData) return;
-  mkChart(id, mkCfg({
-    type: "scatter",
-    data: {
-      datasets: [
-        {
-          label: "Survived",
-          data: scatterData.alive.map(v => ({ x: v, y: (Math.random() - 0.5) * 0.3 })),
-          backgroundColor: C.green, pointRadius: 3,
-        },
-        {
-          label: "Died",
-          data: scatterData.dead.map(v => ({ x: v, y: 1 + (Math.random() - 0.5) * 0.3 })),
-          backgroundColor: C.red, pointRadius: 3,
-        },
-      ],
-    },
-    options: {
-      scales: {
-        x: { title: { display: true, text: xLabel, color: "#64748b" }, ticks: { color: "#64748b" }, grid: { color: "rgba(30,45,69,0.6)" } },
-        y: { ticks: { color: "#64748b", callback: v => v < 0.5 ? "Survived" : "Died" }, grid: { color: "rgba(30,45,69,0.6)" } },
+  mkChart(
+    id,
+    mkCfg({
+      type: "scatter",
+      data: {
+        datasets: [
+          {
+            label: "Survived",
+            data: scatterData.alive.map((v) => ({
+              x: v,
+              y: (Math.random() - 0.5) * 0.3,
+            })),
+            backgroundColor: C.green,
+            pointRadius: 3,
+          },
+          {
+            label: "Died",
+            data: scatterData.dead.map((v) => ({
+              x: v,
+              y: 1 + (Math.random() - 0.5) * 0.3,
+            })),
+            backgroundColor: C.red,
+            pointRadius: 3,
+          },
+        ],
       },
-    },
-  }));
+      options: {
+        scales: {
+          x: {
+            title: { display: true, text: xLabel, color: "#64748b" },
+            ticks: { color: "#64748b" },
+            grid: { color: "rgba(30,45,69,0.6)" },
+          },
+          y: {
+            ticks: {
+              color: "#64748b",
+              callback: (v) => (v < 0.5 ? "Survived" : "Died"),
+            },
+            grid: { color: "rgba(30,45,69,0.6)" },
+          },
+        },
+      },
+    }),
+  );
 }
 
 function renderHeatmap(corr) {
@@ -205,15 +275,21 @@ function renderHeatmap(corr) {
 
   let html = `<table style="border-collapse:collapse;">
     <thead><tr><th style="min-width:80px;"></th>`;
-  labels.forEach(l => {
-    const abbr = l.replace(/_/g, " ").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 4);
+  labels.forEach((l) => {
+    const abbr = l
+      .replace(/_/g, " ")
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 4);
     html += `<th style="color:var(--text-muted);padding:2px 3px;font-size:0.6rem;" title="${l}">${abbr}</th>`;
   });
   html += `</tr></thead><tbody>`;
 
   matrix.forEach((row, i) => {
-    html += `<tr><td style="color:var(--text-muted);padding:2px 6px;font-size:0.6rem;white-space:nowrap;">${labels[i].slice(0,12)}</td>`;
-    row.forEach(val => {
+    html += `<tr><td style="color:var(--text-muted);padding:2px 6px;font-size:0.6rem;white-space:nowrap;">${labels[i].slice(0, 12)}</td>`;
+    row.forEach((val) => {
       const abs = Math.abs(val);
       const r = val > 0 ? Math.round(abs * 80) : 0;
       const b = val < 0 ? Math.round(abs * 80) : 0;
@@ -238,7 +314,9 @@ async function loadMarginal() {
     const d = await r.json();
     if (!r.ok) throw new Error(d.detail);
     renderMarginal(d);
-  } catch (e) { el.innerHTML = errHtml(e.message); }
+  } catch (e) {
+    el.innerHTML = errHtml(e.message);
+  }
 }
 
 function renderMarginal(d) {
@@ -266,18 +344,27 @@ function renderMarginal(d) {
     <div class="card mt-20">
       <div class="explain-box">
         <strong>What is Marginal Probability?</strong><br/>
-        Marginal probability is the probability of a single event without any conditions — it is computed by summing (or integrating) the joint distribution over all values of all other variables. Here, <em>P(Death = 1) = ${d.p_death}</em>, meaning roughly <strong>${(d.p_death*100).toFixed(1)}%</strong> of patients in this cohort died during the follow-up period. This serves as the baseline mortality estimate for the entire population, used as a benchmark against which conditional and joint probabilities are compared.
+        Marginal probability is the probability of a single event without any conditions — it is computed by summing (or integrating) the joint distribution over all values of all other variables. Here, <em>P(Death = 1) = ${d.p_death}</em>, meaning roughly <strong>${(d.p_death * 100).toFixed(1)}%</strong> of patients in this cohort died during the follow-up period. This serves as the baseline mortality estimate for the entire population, used as a benchmark against which conditional and joint probabilities are compared.
       </div>
     </div>`;
 
-  mkChart("chart-marginal", mkCfg({
-    type: "doughnut",
-    data: {
-      labels: ["Death Event", "Survival"],
-      datasets: [{ data: [d.p_death, d.p_survival], backgroundColor: [C.red, C.green], borderWidth: 0 }],
-    },
-    options: { cutout: "65%", plugins: { legend: { position: "bottom" } } },
-  }));
+  mkChart(
+    "chart-marginal",
+    mkCfg({
+      type: "doughnut",
+      data: {
+        labels: ["Death Event", "Survival"],
+        datasets: [
+          {
+            data: [d.p_death, d.p_survival],
+            backgroundColor: [C.red, C.green],
+            borderWidth: 0,
+          },
+        ],
+      },
+      options: { cutout: "65%", plugins: { legend: { position: "bottom" } } },
+    }),
+  );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -285,14 +372,16 @@ function renderMarginal(d) {
 // ══════════════════════════════════════════════════════════════════
 async function loadJoint() {
   const age = parseInt($("joint-age").value) || 60;
-  const el  = $("joint-content");
+  const el = $("joint-content");
   el.innerHTML = `<div class="loader"><div class="spinner"></div> Computing…</div>`;
   try {
     const r = await fetch(`${API}/joint?age_threshold=${age}`);
     const d = await r.json();
     if (!r.ok) throw new Error(d.detail);
     renderJoint(d);
-  } catch (e) { el.innerHTML = errHtml(e.message); }
+  } catch (e) {
+    el.innerHTML = errHtml(e.message);
+  }
 }
 
 function renderJoint(d) {
@@ -324,18 +413,23 @@ function renderJoint(d) {
       </div>
     </div>`;
 
-  mkChart("chart-joint", mkCfg({
-    type: "bar",
-    data: {
-      labels: [`P(Age>${d.age_threshold})`, "P(Death=1)", "P(Joint A∩B)"],
-      datasets: [{
-        label: "Probability",
-        data: [d.p_age_gt_threshold, d.p_death, d.p_joint],
-        backgroundColor: [C.blue, C.red, C.amber],
-        borderRadius: 6,
-      }],
-    },
-  }));
+  mkChart(
+    "chart-joint",
+    mkCfg({
+      type: "bar",
+      data: {
+        labels: [`P(Age>${d.age_threshold})`, "P(Death=1)", "P(Joint A∩B)"],
+        datasets: [
+          {
+            label: "Probability",
+            data: [d.p_age_gt_threshold, d.p_death, d.p_joint],
+            backgroundColor: [C.blue, C.red, C.amber],
+            borderRadius: 6,
+          },
+        ],
+      },
+    }),
+  );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -343,23 +437,31 @@ function renderJoint(d) {
 // ══════════════════════════════════════════════════════════════════
 async function loadConditional() {
   const cond = $("cond-select").value;
-  const el   = $("cond-content");
+  const el = $("cond-content");
   el.innerHTML = `<div class="loader"><div class="spinner"></div> Computing…</div>`;
   try {
     const r = await fetch(`${API}/conditional?condition=${cond}`);
     const d = await r.json();
     if (!r.ok) throw new Error(d.detail);
     renderConditional(d);
-  } catch (e) { el.innerHTML = errHtml(e.message); }
+  } catch (e) {
+    el.innerHTML = errHtml(e.message);
+  }
 }
 
 function renderConditional(d) {
   const labels = {
-    age_gt_60: "Age > 60", diabetes: "Diabetes",
-    high_blood_pressure: "High BP", anaemia: "Anaemia", smoking: "Smoking",
+    age_gt_60: "Age > 60",
+    diabetes: "Diabetes",
+    high_blood_pressure: "High BP",
+    anaemia: "Anaemia",
+    smoking: "Smoking",
   };
   const lift = (d.p_death_given_cond / d.p_overall_death).toFixed(2);
-  const liftColor = d.p_death_given_cond > d.p_overall_death ? "var(--danger)" : "var(--accent)";
+  const liftColor =
+    d.p_death_given_cond > d.p_overall_death
+      ? "var(--danger)"
+      : "var(--accent)";
 
   $("cond-content").innerHTML = `
     <div class="grid-2">
@@ -387,37 +489,42 @@ function renderConditional(d) {
     <div class="card mt-20">
       <div class="explain-box">
         <strong>What is Conditional Probability?</strong><br/>
-        P(B | A) = P(A ∩ B) / P(A) — the probability of B given that A has already occurred. Here, P(Death | ${labels[d.condition]}) = <strong>${d.p_death_given_cond}</strong>. The <em>Risk Lift</em> of ${lift}× means this condition ${parseFloat(lift) > 1 ? "increases" : "decreases"} the death probability by ${Math.abs((parseFloat(lift)-1)*100).toFixed(0)}% compared to the population baseline. Clinicians use conditional probabilities to triage high-risk patients and personalise treatment protocols.
+        P(B | A) = P(A ∩ B) / P(A) — the probability of B given that A has already occurred. Here, P(Death | ${labels[d.condition]}) = <strong>${d.p_death_given_cond}</strong>. The <em>Risk Lift</em> of ${lift}× means this condition ${parseFloat(lift) > 1 ? "increases" : "decreases"} the death probability by ${Math.abs((parseFloat(lift) - 1) * 100).toFixed(0)}% compared to the population baseline. Clinicians use conditional probabilities to triage high-risk patients and personalise treatment protocols.
       </div>
     </div>`;
 
-  const compLabels = Object.keys(d.comparison).map(k => labels[k] || k);
-  const compVals   = Object.values(d.comparison);
+  const compLabels = Object.keys(d.comparison).map((k) => labels[k] || k);
+  const compVals = Object.values(d.comparison);
 
-  mkChart("chart-cond", mkCfg({
-    type: "bar",
-    data: {
-      labels: compLabels,
-      datasets: [
-        {
-          label: "P(Death | Condition)",
-          data: compVals,
-          backgroundColor: compVals.map(v => v > d.p_overall_death ? C.red : C.blue),
-          borderRadius: 6,
-        },
-        {
-          label: "Overall P(Death)",
-          data: compLabels.map(() => d.p_overall_death),
-          type: "line",
-          borderColor: C.amber,
-          borderDash: [6, 3],
-          borderWidth: 2,
-          pointRadius: 0,
-          fill: false,
-        },
-      ],
-    },
-  }));
+  mkChart(
+    "chart-cond",
+    mkCfg({
+      type: "bar",
+      data: {
+        labels: compLabels,
+        datasets: [
+          {
+            label: "P(Death | Condition)",
+            data: compVals,
+            backgroundColor: compVals.map((v) =>
+              v > d.p_overall_death ? C.red : C.blue,
+            ),
+            borderRadius: 6,
+          },
+          {
+            label: "Overall P(Death)",
+            data: compLabels.map(() => d.p_overall_death),
+            type: "line",
+            borderColor: C.amber,
+            borderDash: [6, 3],
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: false,
+          },
+        ],
+      },
+    }),
+  );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -431,11 +538,16 @@ async function loadMLE() {
     const d = await r.json();
     if (!r.ok) throw new Error(d.detail);
     renderMLE(d);
-  } catch (e) { el.innerHTML = errHtml(e.message); }
+  } catch (e) {
+    el.innerHTML = errHtml(e.message);
+  }
 }
 
 function renderMLE(d) {
-  const llAtMLE = (d.k * Math.log(d.p_mle) + (d.n - d.k) * Math.log(1 - d.p_mle)).toFixed(2);
+  const llAtMLE = (
+    d.k * Math.log(d.p_mle) +
+    (d.n - d.k) * Math.log(1 - d.p_mle)
+  ).toFixed(2);
 
   $("mle-content").innerHTML = `
     <div class="grid-2">
@@ -466,35 +578,50 @@ function renderMLE(d) {
     </div>`;
 
   const step = 4;
-  const pvs  = d.p_values.filter((_, i) => i % step === 0);
-  const ll   = d.log_likelihood.filter((_, i) => i % step === 0);
+  const pvs = d.p_values.filter((_, i) => i % step === 0);
+  const ll = d.log_likelihood.filter((_, i) => i % step === 0);
 
-  mkChart("chart-mle", mkCfg({
-    type: "line",
-    data: {
-      labels: pvs.map(v => v.toFixed(2)),
-      datasets: [{
-        label: "Log-Likelihood ℓ(p)",
-        data: ll,
-        borderColor: C.green,
-        backgroundColor: "rgba(0,212,170,0.08)",
-        fill: true, tension: 0.4, pointRadius: 0,
-      }],
-    },
-    options: {
-      scales: {
-        x: { title: { display: true, text: "p", color: "#64748b" }, ticks: { color: "#64748b", maxTicksLimit: 10 }, grid: { color: "rgba(30,45,69,0.6)" } },
-        y: { title: { display: true, text: "Log-Likelihood", color: "#64748b" }, ticks: { color: "#64748b" }, grid: { color: "rgba(30,45,69,0.6)" } },
+  mkChart(
+    "chart-mle",
+    mkCfg({
+      type: "line",
+      data: {
+        labels: pvs.map((v) => v.toFixed(2)),
+        datasets: [
+          {
+            label: "Log-Likelihood ℓ(p)",
+            data: ll,
+            borderColor: C.green,
+            backgroundColor: "rgba(0,212,170,0.08)",
+            fill: true,
+            tension: 0.4,
+            pointRadius: 0,
+          },
+        ],
       },
-    },
-  }));
+      options: {
+        scales: {
+          x: {
+            title: { display: true, text: "p", color: "#64748b" },
+            ticks: { color: "#64748b", maxTicksLimit: 10 },
+            grid: { color: "rgba(30,45,69,0.6)" },
+          },
+          y: {
+            title: { display: true, text: "Log-Likelihood", color: "#64748b" },
+            ticks: { color: "#64748b" },
+            grid: { color: "rgba(30,45,69,0.6)" },
+          },
+        },
+      },
+    }),
+  );
 }
 
 // ══════════════════════════════════════════════════════════════════
 // SECTION 6 — KL DIVERGENCE   →  GET /kl-divergence?assumed_p=0.30
 // ══════════════════════════════════════════════════════════════════
 async function loadKL() {
-  const assumed = parseFloat($("kl-assumed").value) || 0.30;
+  const assumed = parseFloat($("kl-assumed").value) || 0.3;
   const el = $("kl-content");
   el.innerHTML = `<div class="loader"><div class="spinner"></div> Computing…</div>`;
   try {
@@ -502,16 +629,22 @@ async function loadKL() {
     const d = await r.json();
     if (!r.ok) throw new Error(d.detail);
     renderKL(d);
-  } catch (e) { el.innerHTML = errHtml(e.message); }
+  } catch (e) {
+    el.innerHTML = errHtml(e.message);
+  }
 }
 
 function renderKL(d) {
   const kv = d.kl_divergence;
-  const level = kv < 0.01
-    ? { badge: "badge-green",  text: "Low — distributions closely match" }
-    : kv < 0.05
-      ? { badge: "badge-yellow", text: "Moderate — noticeable information gap" }
-      : { badge: "badge-red",    text: "High — significant mismatch detected" };
+  const level =
+    kv < 0.01
+      ? { badge: "badge-green", text: "Low — distributions closely match" }
+      : kv < 0.05
+        ? {
+            badge: "badge-yellow",
+            text: "Moderate — noticeable information gap",
+          }
+        : { badge: "badge-red", text: "High — significant mismatch detected" };
 
   $("kl-content").innerHTML = `
     <div class="grid-2">
@@ -542,28 +675,51 @@ function renderKL(d) {
     </div>`;
 
   const step = 4;
-  const qs  = d.q_range.filter((_, i) => i % step === 0);
+  const qs = d.q_range.filter((_, i) => i % step === 0);
   const kls = d.kl_curve.filter((_, i) => i % step === 0);
 
-  mkChart("chart-kl", mkCfg({
-    type: "line",
-    data: {
-      labels: qs.map(v => v.toFixed(2)),
-      datasets: [{
-        label: "KL Divergence",
-        data: kls,
-        borderColor: C.amber,
-        backgroundColor: "rgba(245,158,11,0.07)",
-        fill: true, tension: 0.4, pointRadius: 0,
-      }],
-    },
-    options: {
-      scales: {
-        x: { title: { display: true, text: "Assumed P(Death)", color: "#64748b" }, ticks: { color: "#64748b", maxTicksLimit: 10 }, grid: { color: "rgba(30,45,69,0.6)" } },
-        y: { title: { display: true, text: "KL Divergence (nats)", color: "#64748b" }, ticks: { color: "#64748b" }, grid: { color: "rgba(30,45,69,0.6)" } },
+  mkChart(
+    "chart-kl",
+    mkCfg({
+      type: "line",
+      data: {
+        labels: qs.map((v) => v.toFixed(2)),
+        datasets: [
+          {
+            label: "KL Divergence",
+            data: kls,
+            borderColor: C.amber,
+            backgroundColor: "rgba(245,158,11,0.07)",
+            fill: true,
+            tension: 0.4,
+            pointRadius: 0,
+          },
+        ],
       },
-    },
-  }));
+      options: {
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: "Assumed P(Death)",
+              color: "#64748b",
+            },
+            ticks: { color: "#64748b", maxTicksLimit: 10 },
+            grid: { color: "rgba(30,45,69,0.6)" },
+          },
+          y: {
+            title: {
+              display: true,
+              text: "KL Divergence (nats)",
+              color: "#64748b",
+            },
+            ticks: { color: "#64748b" },
+            grid: { color: "rgba(30,45,69,0.6)" },
+          },
+        },
+      },
+    }),
+  );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -577,30 +733,40 @@ async function loadMarkov() {
     const d = await r.json();
     if (!r.ok) throw new Error(d.detail);
     renderMarkov(d);
-  } catch (e) { el.innerHTML = errHtml(e.message); }
+  } catch (e) {
+    el.innerHTML = errHtml(e.message);
+  }
 }
 
 function renderMarkov(d) {
   const names = d.state_names;
-  const T     = d.matrix;
+  const T = d.matrix;
   const stateColors = ["var(--accent)", "var(--accent3)", "var(--danger)"];
 
-  const matrixRows = T.map((row, i) =>
-    `<tr>
+  const matrixRows = T.map(
+    (row, i) =>
+      `<tr>
       <td style="color:${stateColors[i]};font-weight:600;">${names[i]}</td>
-      ${row.map(v =>
-        `<td style="text-align:center;font-family:'IBM Plex Mono';${v >= 0.5 ? 'color:var(--accent);font-weight:600;' : ''}">${v.toFixed(3)}</td>`
-      ).join("")}
-    </tr>`
+      ${row
+        .map(
+          (v) =>
+            `<td style="text-align:center;font-family:'IBM Plex Mono';${v >= 0.5 ? "color:var(--accent);font-weight:600;" : ""}">${v.toFixed(3)}</td>`,
+        )
+        .join("")}
+    </tr>`,
   ).join("");
 
   $("markov-content").innerHTML = `
     <div class="grid-3 mb-20">
-      ${Object.entries(d.state_distribution).map(([name, prob], i) => `
+      ${Object.entries(d.state_distribution)
+        .map(
+          ([name, prob], i) => `
         <div class="stat-pill text-center">
           <div class="value" style="color:${stateColors[i]}">${(prob * 100).toFixed(1)}%</div>
           <div class="label">${name} (${d.state_counts[name]} patients)</div>
-        </div>`).join("")}
+        </div>`,
+        )
+        .join("")}
     </div>
 
     <div class="grid-2">
@@ -608,7 +774,7 @@ function renderMarkov(d) {
         <div class="card-title">Transition Probability Matrix T[i→j]</div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>From \ To</th>${names.map(n => `<th style="text-align:center">${n}</th>`).join("")}</tr></thead>
+            <thead><tr><th>From \ To</th>${names.map((n) => `<th style="text-align:center">${n}</th>`).join("")}</tr></thead>
             <tbody>${matrixRows}</tbody>
           </table>
         </div>
@@ -619,13 +785,17 @@ function renderMarkov(d) {
         <div class="card-title">State Distribution</div>
         <div class="chart-wrap" style="height:230px;"><canvas id="chart-markov-dist"></canvas></div>
         <div class="markov-states mt-12">
-          ${names.map((name, i) => {
-            const cls = ["healthy","at-risk","critical"][i];
-            return `<div class="state-node ${cls}" onclick="$('markov-start').value=${i}" title="Click to select as start state">
-              <span style="font-size:1.4rem;">${["💚","🟡","🔴"][i]}</span>
+          ${names
+            .map((name, i) => {
+              const cls = ["healthy", "at-risk", "critical"][i];
+              return `<div class="state-node ${cls}" onclick="$('markov-start').value=${i}" title="Click to select as start state">
+              <span style="font-size:1.4rem;">${["💚", "🟡", "🔴"][i]}</span>
               <span>${name}</span>
             </div>`;
-          }).join('<div style="font-size:1.3rem;color:var(--text-dim)">→</div>')}
+            })
+            .join(
+              '<div style="font-size:1.3rem;color:var(--text-dim)">→</div>',
+            )}
         </div>
       </div>
     </div>
@@ -653,24 +823,29 @@ function renderMarkov(d) {
       </div>
     </div>`;
 
-  mkChart("chart-markov-dist", mkCfg({
-    type: "bar",
-    data: {
-      labels: names,
-      datasets: [{
-        label: "Patient Count",
-        data: Object.values(d.state_counts),
-        backgroundColor: [C.green, C.amber, C.red],
-        borderRadius: 6,
-      }],
-    },
-  }));
+  mkChart(
+    "chart-markov-dist",
+    mkCfg({
+      type: "bar",
+      data: {
+        labels: names,
+        datasets: [
+          {
+            label: "Patient Count",
+            data: Object.values(d.state_counts),
+            backgroundColor: [C.green, C.amber, C.red],
+            borderRadius: 6,
+          },
+        ],
+      },
+    }),
+  );
 }
 
 async function runMarkovSim() {
   const state = parseInt($("markov-start").value);
   const steps = parseInt($("markov-steps").value) || 10;
-  const el    = $("markov-sim-result");
+  const el = $("markov-sim-result");
   el.innerHTML = `<div class="loader"><div class="spinner"></div> Simulating…</div>`;
   try {
     const r = await fetch(`${API}/markov/simulate`, {
@@ -681,15 +856,18 @@ async function runMarkovSim() {
     const d = await r.json();
     if (!r.ok) throw new Error(d.detail);
 
-    const traj  = d.trajectory;
-    const idxs  = traj.indices;
+    const traj = d.trajectory;
+    const idxs = traj.indices;
     const named = traj.trajectory;
-    const cls   = ["badge-green", "badge-yellow", "badge-red"];
-    const next  = d.next_state_prediction;
+    const cls = ["badge-green", "badge-yellow", "badge-red"];
+    const next = d.next_state_prediction;
 
-    const strip = named.map((name, i) =>
-      `<span class="traj-node ${cls[idxs[i]]}">${i}: ${name}</span>`
-    ).join(" → ");
+    const strip = named
+      .map(
+        (name, i) =>
+          `<span class="traj-node ${cls[idxs[i]]}">${i}: ${name}</span>`,
+      )
+      .join(" → ");
 
     el.innerHTML = `
       <div class="result-highlight mb-16">
@@ -716,34 +894,42 @@ async function loadHMM() {
     const d = await r.json();
     if (!r.ok) throw new Error(d.detail);
     renderHMM(d);
-  } catch (e) { el.innerHTML = errHtml(e.message); }
+  } catch (e) {
+    el.innerHTML = errHtml(e.message);
+  }
 }
 
 function renderHMM(d) {
   const stateColors = ["var(--accent)", "var(--accent3)", "var(--danger)"];
   const total = Object.values(d.state_frequencies).reduce((a, b) => a + b, 0);
 
-  const emRows = d.emission_matrix.map((row, i) =>
-    `<tr>
+  const emRows = d.emission_matrix
+    .map(
+      (row, i) =>
+        `<tr>
       <td style="color:${stateColors[i]};font-weight:600;">${d.hidden_states[i]}</td>
-      ${row.map(v => `<td style="text-align:center;font-family:'IBM Plex Mono'">${v.toFixed(2)}</td>`).join("")}
-    </tr>`
-  ).join("");
+      ${row.map((v) => `<td style="text-align:center;font-family:'IBM Plex Mono'">${v.toFixed(2)}</td>`).join("")}
+    </tr>`,
+    )
+    .join("");
 
-  const predRows = d.sample_predictions.map(p =>
-    `<tr>
+  const predRows = d.sample_predictions
+    .map(
+      (p) =>
+        `<tr>
       <td class="mono">${p.index}</td>
       <td>${p.observation}</td>
       <td style="color:${p.hidden_state === "Healthy" ? "var(--accent)" : p.hidden_state === "At Risk" ? "var(--accent3)" : "var(--danger)"};font-weight:600;">${p.hidden_state}</td>
-    </tr>`
-  ).join("");
+    </tr>`,
+    )
+    .join("");
 
   $("hmm-content").innerHTML = `
     <div class="grid-2 mb-20">
       <div class="card">
         <div class="card-title">Emission Probability Matrix  P(obs | hidden state)</div>
         <table>
-          <thead><tr><th>Hidden State</th>${d.obs_names.map(o => `<th style="text-align:center">${o}</th>`).join("")}</tr></thead>
+          <thead><tr><th>Hidden State</th>${d.obs_names.map((o) => `<th style="text-align:center">${o}</th>`).join("")}</tr></thead>
           <tbody>${emRows}</tbody>
         </table>
         <div class="explain-box mt-16">
@@ -757,12 +943,16 @@ function renderHMM(d) {
         <div class="chart-wrap"><canvas id="chart-hmm"></canvas></div>
         <table class="mt-16">
           <thead><tr><th>State</th><th>Count</th><th>Share</th></tr></thead>
-          <tbody>${d.hidden_states.map((s, i) => `
+          <tbody>${d.hidden_states
+            .map(
+              (s, i) => `
             <tr>
               <td style="color:${stateColors[i]};font-weight:600;">${s}</td>
               <td class="mono">${d.state_frequencies[s]}</td>
               <td class="mono">${((d.state_frequencies[s] / total) * 100).toFixed(1)}%</td>
-            </tr>`).join("")}
+            </tr>`,
+            )
+            .join("")}
           </tbody>
         </table>
       </div>
@@ -785,14 +975,23 @@ function renderHMM(d) {
       </div>
     </div>`;
 
-  mkChart("chart-hmm", mkCfg({
-    type: "doughnut",
-    data: {
-      labels: d.hidden_states,
-      datasets: [{ data: Object.values(d.state_frequencies), backgroundColor: [C.green, C.amber, C.red], borderWidth: 0 }],
-    },
-    options: { cutout: "58%", plugins: { legend: { position: "bottom" } } },
-  }));
+  mkChart(
+    "chart-hmm",
+    mkCfg({
+      type: "doughnut",
+      data: {
+        labels: d.hidden_states,
+        datasets: [
+          {
+            data: Object.values(d.state_frequencies),
+            backgroundColor: [C.green, C.amber, C.red],
+            borderWidth: 0,
+          },
+        ],
+      },
+      options: { cutout: "58%", plugins: { legend: { position: "bottom" } } },
+    }),
+  );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -806,31 +1005,49 @@ async function loadGenAI() {
     const d = await r.json();
     if (!r.ok) throw new Error(d.detail);
     renderGenAI(d);
-  } catch (e) { el.innerHTML = errHtml(e.message); }
+  } catch (e) {
+    el.innerHTML = errHtml(e.message);
+  }
 }
 
 function renderGenAI(d) {
   const apps = [
-    { icon: "🖼️", title: "Synthetic Medical Image Generation",
-      body: "GANs (StyleGAN, DCGAN) generate realistic X-ray, MRI, and CT images from noise vectors. Synthetic images augment rare-disease training sets while preserving patient privacy. Conditional GANs can generate pathology-specific images on demand — e.g., synthesising diabetic retinopathy grades." },
-    { icon: "💊", title: "Drug Discovery & Molecule Design",
-      body: "Variational autoencoders (VAEs) and diffusion models generate novel molecular structures with desired pharmacological properties. RNN-based models (REINVENT, ChemFormer) optimise lead compounds iteratively. AlphaFold 3 predicts protein-ligand structures, cutting lab screening timelines from years to weeks." },
-    { icon: "📋", title: "Clinical Report Generation",
-      body: "Fine-tuned LLMs (GPT-4, Med-PaLM 2, Llama-Med) convert structured imaging data and lab values into natural-language radiology and pathology reports, auto-code ICD diagnoses, and draft discharge summaries — reducing clinician documentation load by up to 40%." },
-    { icon: "📊", title: "Patient Data Augmentation",
-      body: "SMOTE, CTGAN, and TVAE synthesise minority-class patient records to fix class imbalance in predictive models. Synthetic EHR data can be shared between hospitals for federated learning without violating HIPAA/GDPR, enabling multi-institutional model training." },
+    {
+      icon: "🖼️",
+      title: "Synthetic Medical Image Generation",
+      body: "GANs (StyleGAN, DCGAN) generate realistic X-ray, MRI, and CT images from noise vectors. Synthetic images augment rare-disease training sets while preserving patient privacy. Conditional GANs can generate pathology-specific images on demand — e.g., synthesising diabetic retinopathy grades.",
+    },
+    {
+      icon: "💊",
+      title: "Drug Discovery & Molecule Design",
+      body: "Variational autoencoders (VAEs) and diffusion models generate novel molecular structures with desired pharmacological properties. RNN-based models (REINVENT, ChemFormer) optimise lead compounds iteratively. AlphaFold 3 predicts protein-ligand structures, cutting lab screening timelines from years to weeks.",
+    },
+    {
+      icon: "📋",
+      title: "Clinical Report Generation",
+      body: "Fine-tuned LLMs (GPT-4, Med-PaLM 2, Llama-Med) convert structured imaging data and lab values into natural-language radiology and pathology reports, auto-code ICD diagnoses, and draft discharge summaries — reducing clinician documentation load by up to 40%.",
+    },
+    {
+      icon: "📊",
+      title: "Patient Data Augmentation",
+      body: "SMOTE, CTGAN, and TVAE synthesise minority-class patient records to fix class imbalance in predictive models. Synthetic EHR data can be shared between hospitals for federated learning without violating HIPAA/GDPR, enabling multi-institutional model training.",
+    },
   ];
 
   const previewCols = Object.keys(d.synthetic[0] || {});
 
   $("genai-content").innerHTML = `
     <div class="grid-2 mb-20">
-      ${apps.map(a => `
+      ${apps
+        .map(
+          (a) => `
         <div class="card">
           <div style="font-size:2.2rem;margin-bottom:8px;">${a.icon}</div>
           <div class="card-title">${a.title}</div>
           <p style="font-size:0.86rem;color:var(--text-muted);line-height:1.75;">${a.body}</p>
-        </div>`).join("")}
+        </div>`,
+        )
+        .join("")}
     </div>
 
     <div class="card mb-20">
@@ -838,15 +1055,17 @@ function renderGenAI(d) {
       <table>
         <thead><tr><th>Feature</th><th>Real Mean</th><th>Real Std</th><th style="color:var(--accent)">Synth Mean</th><th style="color:var(--accent)">Synth Std</th></tr></thead>
         <tbody>
-          ${Object.entries(d.real_stats).map(([feat, rs]) => {
-            const ss = d.synth_stats[feat] || {};
-            return `<tr>
+          ${Object.entries(d.real_stats)
+            .map(([feat, rs]) => {
+              const ss = d.synth_stats[feat] || {};
+              return `<tr>
               <td>${feat}</td>
               <td class="mono">${rs.mean}</td><td class="mono">${rs.std}</td>
               <td class="mono" style="color:var(--accent)">${ss.mean || "—"}</td>
               <td class="mono" style="color:var(--accent)">${ss.std || "—"}</td>
             </tr>`;
-          }).join("")}
+            })
+            .join("")}
         </tbody>
       </table>
       <p class="text-dim mt-12">Synthetic statistics should approximate real statistics. Small deviations are normal at n=${d.n_samples} samples. Larger samples converge more closely.</p>
@@ -856,11 +1075,15 @@ function renderGenAI(d) {
       <div class="card-title">Generated Synthetic Patient Records (first 8 of ${d.n_samples})</div>
       <div class="table-wrap">
         <table>
-          <thead><tr>${previewCols.map(c => `<th>${c}</th>`).join("")}</tr></thead>
+          <thead><tr>${previewCols.map((c) => `<th>${c}</th>`).join("")}</tr></thead>
           <tbody>
-            ${d.synthetic.slice(0, 8).map(row =>
-              `<tr>${previewCols.map(c => `<td class="mono" style="font-size:0.78rem;">${row[c] !== null && row[c] !== undefined ? row[c] : "—"}</td>`).join("")}</tr>`
-            ).join("")}
+            ${d.synthetic
+              .slice(0, 8)
+              .map(
+                (row) =>
+                  `<tr>${previewCols.map((c) => `<td class="mono" style="font-size:0.78rem;">${row[c] !== null && row[c] !== undefined ? row[c] : "—"}</td>`).join("")}</tr>`,
+              )
+              .join("")}
           </tbody>
         </table>
       </div>
@@ -876,39 +1099,110 @@ function renderGenAI(d) {
 // ══════════════════════════════════════════════════════════════════
 function renderDL() {
   const layers_lstm = [
-    { name: "Input Layer",            desc: "Sequential time-series  (T timesteps × F features)",              color: "var(--accent2)" },
-    { name: "LSTM Layer 1 — 128 units", desc: "Forget / Input / Output gates learn long-range temporal patterns", color: "var(--accent)"  },
-    { name: "Dropout — 0.30",          desc: "Regularisation: randomly zero 30% of activations per batch",      color: "var(--dim)"     },
-    { name: "LSTM Layer 2 — 64 units",  desc: "Hierarchical temporal feature extraction",                        color: "var(--accent)"  },
-    { name: "Dense — 32, ReLU",        desc: "Non-linear projection to compact representation",                  color: "var(--accent3)" },
-    { name: "Output — 1, Sigmoid",     desc: "P(critical deterioration within 24h) ∈ [0, 1]",                   color: "var(--danger)"  },
+    {
+      name: "Input Layer",
+      desc: "Sequential time-series  (T timesteps × F features)",
+      color: "var(--accent2)",
+    },
+    {
+      name: "LSTM Layer 1 — 128 units",
+      desc: "Forget / Input / Output gates learn long-range temporal patterns",
+      color: "var(--accent)",
+    },
+    {
+      name: "Dropout — 0.30",
+      desc: "Regularisation: randomly zero 30% of activations per batch",
+      color: "var(--dim)",
+    },
+    {
+      name: "LSTM Layer 2 — 64 units",
+      desc: "Hierarchical temporal feature extraction",
+      color: "var(--accent)",
+    },
+    {
+      name: "Dense — 32, ReLU",
+      desc: "Non-linear projection to compact representation",
+      color: "var(--accent3)",
+    },
+    {
+      name: "Output — 1, Sigmoid",
+      desc: "P(critical deterioration within 24h) ∈ [0, 1]",
+      color: "var(--danger)",
+    },
   ];
 
   const layers_gru = [
-    { name: "Input Layer",            desc: "ECG signal or heart-rate stream  (T × 1)",                         color: "var(--accent2)" },
-    { name: "GRU Layer 1 — 128 units", desc: "Update + Reset gates; fewer params than LSTM, faster training",   color: "var(--accent)"  },
-    { name: "Dropout — 0.30",          desc: "Regularisation layer",                                             color: "var(--dim)"     },
-    { name: "GRU Layer 2 — 64 units",  desc: "Deeper gated recurrent processing",                               color: "var(--accent)"  },
-    { name: "GlobalAvgPool1D",         desc: "Collapse temporal axis → fixed-length vector",                     color: "var(--accent3)" },
-    { name: "Output — 1, Sigmoid",     desc: "P(arrhythmia) or mortality risk score",                           color: "var(--danger)"  },
+    {
+      name: "Input Layer",
+      desc: "ECG signal or heart-rate stream  (T × 1)",
+      color: "var(--accent2)",
+    },
+    {
+      name: "GRU Layer 1 — 128 units",
+      desc: "Update + Reset gates; fewer params than LSTM, faster training",
+      color: "var(--accent)",
+    },
+    {
+      name: "Dropout — 0.30",
+      desc: "Regularisation layer",
+      color: "var(--dim)",
+    },
+    {
+      name: "GRU Layer 2 — 64 units",
+      desc: "Deeper gated recurrent processing",
+      color: "var(--accent)",
+    },
+    {
+      name: "GlobalAvgPool1D",
+      desc: "Collapse temporal axis → fixed-length vector",
+      color: "var(--accent3)",
+    },
+    {
+      name: "Output — 1, Sigmoid",
+      desc: "P(arrhythmia) or mortality risk score",
+      color: "var(--danger)",
+    },
   ];
 
   const layers_transformer = [
-    { name: "Input Embeddings + Positional Encoding", desc: "Dense vectors + positional info injected into every token", color: "var(--accent2)" },
-    { name: "Multi-Head Self-Attention ×6",           desc: "Each head attends to different clinical relationships; global context captured in O(1) depth", color: "var(--accent)" },
-    { name: "Feed-Forward Network (×6)",              desc: "Position-wise dense layers with GELU activation",           color: "var(--accent3)" },
-    { name: "Layer Norm + Residual (×12)",            desc: "Stable gradients through deep stacks",                      color: "var(--dim)"    },
-    { name: "Classification Head",                    desc: "CLS token → mortality / ICD code / readmission prediction", color: "var(--danger)" },
+    {
+      name: "Input Embeddings + Positional Encoding",
+      desc: "Dense vectors + positional info injected into every token",
+      color: "var(--accent2)",
+    },
+    {
+      name: "Multi-Head Self-Attention ×6",
+      desc: "Each head attends to different clinical relationships; global context captured in O(1) depth",
+      color: "var(--accent)",
+    },
+    {
+      name: "Feed-Forward Network (×6)",
+      desc: "Position-wise dense layers with GELU activation",
+      color: "var(--accent3)",
+    },
+    {
+      name: "Layer Norm + Residual (×12)",
+      desc: "Stable gradients through deep stacks",
+      color: "var(--dim)",
+    },
+    {
+      name: "Classification Head",
+      desc: "CLS token → mortality / ICD code / readmission prediction",
+      color: "var(--danger)",
+    },
   ];
 
-  const arch = layers =>
-    layers.map((l, i, arr) => `
+  const arch = (layers) =>
+    layers
+      .map(
+        (l, i, arr) => `
       <div class="arch-layer">
         <div class="arch-layer-name" style="color:${l.color}">${l.name}</div>
         <div class="arch-layer-desc">${l.desc}</div>
       </div>
-      ${i < arr.length - 1 ? '<div class="arch-arrow">↓</div>' : ''}`
-    ).join("");
+      ${i < arr.length - 1 ? '<div class="arch-arrow">↓</div>' : ""}`,
+      )
+      .join("");
 
   $("dl-content").innerHTML = `
     <div class="grid-2 mb-20">
